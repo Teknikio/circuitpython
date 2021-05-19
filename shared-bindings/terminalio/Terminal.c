@@ -37,16 +37,13 @@
 #include "shared-bindings/fontio/BuiltinFont.h"
 #include "supervisor/shared/translate.h"
 
-
-//| .. currentmodule:: terminalio
+//| class Terminal:
+//|     """Display a character stream with a TileGrid"""
 //|
-//| :class:`Terminal` -- display a character stream with a TileGrid
-//| ================================================================
-//|
-//| .. class:: Terminal(tilegrid, font)
-//|
-//|   Terminal manages tile indices and cursor position based on VT100 commands. The font should be
-//|   a `fontio.BuiltinFont` and the TileGrid's bitmap should match the font's bitmap.
+//|     def __init__(self, tilegrid: displayio.TileGrid, font: fontio.BuiltinFont) -> None:
+//|         """Terminal manages tile indices and cursor position based on VT100 commands. The font should be
+//|         a `fontio.BuiltinFont` and the TileGrid's bitmap should match the font's bitmap."""
+//|         ...
 //|
 
 STATIC mp_obj_t terminalio_terminal_make_new(const mp_obj_type_t *type, size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
@@ -59,12 +56,12 @@ STATIC mp_obj_t terminalio_terminal_make_new(const mp_obj_type_t *type, size_t n
     mp_arg_parse_all(n_args, pos_args, kw_args, MP_ARRAY_SIZE(allowed_args), allowed_args, args);
 
     mp_obj_t tilegrid = args[ARG_tilegrid].u_obj;
-    if (!MP_OBJ_IS_TYPE(tilegrid, &displayio_tilegrid_type)) {
+    if (!mp_obj_is_type(tilegrid, &displayio_tilegrid_type)) {
         mp_raise_TypeError_varg(translate("Expected a %q"), displayio_tilegrid_type.name);
     }
 
     mp_obj_t font = args[ARG_font].u_obj;
-    if (!MP_OBJ_IS_TYPE(font, &fontio_builtinfont_type)) {
+    if (!mp_obj_is_type(font, &fontio_builtinfont_type)) {
         mp_raise_TypeError_varg(translate("Expected a %q"), fontio_builtinfont_type.name);
     }
     terminalio_terminal_obj_t *self = m_new_obj(terminalio_terminal_obj_t);
@@ -75,12 +72,12 @@ STATIC mp_obj_t terminalio_terminal_make_new(const mp_obj_type_t *type, size_t n
 
 // These are standard stream methods. Code is in py/stream.c.
 //
-//|   .. method:: write(buf)
+//|     def write(self, buf: ReadableBuffer) -> Optional[int]:
+//|         """Write the buffer of bytes to the bus.
 //|
-//|     Write the buffer of bytes to the bus.
-//|
-//|     :return: the number of bytes written
-//|     :rtype: int or None
+//|         :return: the number of bytes written
+//|         :rtype: int or None"""
+//|         ...
 //|
 STATIC mp_uint_t terminalio_terminal_write(mp_obj_t self_in, const void *buf_in, mp_uint_t size, int *errcode) {
     terminalio_terminal_obj_t *self = MP_OBJ_TO_PTR(self_in);
@@ -126,5 +123,5 @@ const mp_obj_type_t terminalio_terminal_type = {
     .getiter = mp_identity_getiter,
     .iternext = mp_stream_unbuffered_iter,
     .protocol = &terminalio_terminal_stream_p,
-    .locals_dict = (mp_obj_dict_t*)&terminalio_terminal_locals_dict,
+    .locals_dict = (mp_obj_dict_t *)&terminalio_terminal_locals_dict,
 };

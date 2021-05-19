@@ -24,14 +24,13 @@
  * THE SOFTWARE.
  */
 
-#include "boards/board.h"
+#include "supervisor/board.h"
 #include "mpconfigboard.h"
 
 #include "shared-bindings/busio/SPI.h"
 #include "shared-bindings/displayio/FourWire.h"
 #include "shared-module/displayio/__init__.h"
 #include "shared-module/displayio/mipi_constants.h"
-#include "tick.h"
 
 displayio_fourwire_obj_t board_display_obj;
 
@@ -48,11 +47,11 @@ uint8_t display_init_sequence[] = {
 };
 
 void board_init(void) {
-    busio_spi_obj_t* spi = &displays[0].fourwire_bus.inline_bus;
+    busio_spi_obj_t *spi = &displays[0].fourwire_bus.inline_bus;
     common_hal_busio_spi_construct(spi, &pin_P0_11, &pin_P0_12, NULL);
     common_hal_busio_spi_never_reset(spi);
 
-    displayio_fourwire_obj_t* bus = &displays[0].fourwire_bus;
+    displayio_fourwire_obj_t *bus = &displays[0].fourwire_bus;
     bus->base.type = &displayio_fourwire_type;
     common_hal_displayio_fourwire_construct(bus,
         spi,
@@ -63,7 +62,7 @@ void board_init(void) {
         0, // Polarity
         0); // Phase
 
-    displayio_display_obj_t* display = &displays[0].display;
+    displayio_display_obj_t *display = &displays[0].display;
     display->base.type = &displayio_display_type;
     common_hal_displayio_display_construct(display,
         bus,
@@ -92,7 +91,8 @@ void board_init(void) {
         false, // data_as_commands
         true, // auto_refresh
         60, // native_frames_per_second
-        false); // backlight_on_high
+        false, // backlight_on_high
+        false); // SH1107_addressing
 }
 
 bool board_requests_safe_mode(void) {

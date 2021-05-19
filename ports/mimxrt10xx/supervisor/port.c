@@ -31,7 +31,7 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include "boards/board.h"
+#include "supervisor/board.h"
 #include "supervisor/port.h"
 
 #include "fsl_device_registers.h"
@@ -39,11 +39,11 @@
 #include "common-hal/microcontroller/Pin.h"
 #include "common-hal/pulseio/PulseIn.h"
 #include "common-hal/pulseio/PulseOut.h"
-#include "common-hal/pulseio/PWMOut.h"
+#include "common-hal/pwmio/PWMOut.h"
 #include "common-hal/rtc/RTC.h"
+#include "common-hal/busio/SPI.h"
 
 #include "reset.h"
-#include "tick.h"
 
 #include "tusb.h"
 
@@ -53,7 +53,10 @@
 #if CIRCUITPY_GAMEPADSHIFT
 #include "shared-module/gamepadshift/__init__.h"
 #endif
+#if CIRCUITPY_PEW
 #include "shared-module/_pew/PewPew.h"
+#endif
+#include "supervisor/shared/tick.h"
 
 #include "clocks.h"
 
@@ -69,7 +72,8 @@
 #define NO_EXECUTION 1
 #define EXECUTION 0
 
-// Shareable if the memory system manages coherency.
+// Shareable if the memory system manages coherency. This means shared between memory bus masters,
+// not just CPUs.
 #define NOT_SHAREABLE 0
 #define SHAREABLE 1
 
@@ -106,8 +110,8 @@ extern void main(void);
 // This replaces the Reset_Handler in startup_*.S and SystemInit in system_*.c.
 __attribute__((used, naked)) void Reset_Handler(void) {
     __disable_irq();
-    SCB->VTOR = (uint32_t) &__isr_vector;
-    __set_MSP((uint32_t) &_ld_stack_top);
+    SCB->VTOR = (uint32_t)&__isr_vector;
+    __set_MSP((uint32_t)&_ld_stack_top);
 
     /* Disable I cache and D cache */
     SCB_DisableICache();
@@ -131,7 +135,7 @@ __attribute__((used, naked)) void Reset_Handler(void) {
     IOMUXC_GPR->GPR14 = current_gpr14;
 
     #if ((__FPU_PRESENT == 1) && (__FPU_USED == 1))
-      SCB->CPACR |= ((3UL << 10*2) | (3UL << 11*2));    /* set CP10, CP11 Full Access */
+    SCB->CPACR |= ((3UL << 10 * 2) | (3UL << 11 * 2));  /* set CP10, CP11 Full Access */
     #endif /* ((__FPU_PRESENT == 1) && (__FPU_USED == 1)) */
 
     /* Disable Watchdog Power Down Counter */
@@ -143,11 +147,10 @@ __attribute__((used, naked)) void Reset_Handler(void) {
     WDOG2->WCR &= ~WDOG_WCR_WDE_MASK;
     RTWDOG->CNT = 0xD928C520U; /* 0xD928C520U is the update key */
     RTWDOG->TOVAL = 0xFFFF;
-    RTWDOG->CS = (uint32_t) ((RTWDOG->CS) & ~RTWDOG_CS_EN_MASK) | RTWDOG_CS_UPDATE_MASK;
+    RTWDOG->CS = (uint32_t)((RTWDOG->CS) & ~RTWDOG_CS_EN_MASK) | RTWDOG_CS_UPDATE_MASK;
 
     /* Disable Systick which might be enabled by bootrom */
-    if (SysTick->CTRL & SysTick_CTRL_ENABLE_Msk)
-    {
+    if (SysTick->CTRL & SysTick_CTRL_ENABLE_Msk) {
         SysTick->CTRL &= ~SysTick_CTRL_ENABLE_Msk;
     }
 
@@ -156,7 +159,7 @@ __attribute__((used, naked)) void Reset_Handler(void) {
 
     // Copy all of the itcm code to run from ITCM. Do this while the MPU is disabled because we write
     // protect it.
-    for (uint32_t i = 0; i < ((size_t) &_ld_itcm_size) / 4; i++) {
+    for (uint32_t i = 0; i < ((size_t)&_ld_itcm_size) / 4; i++) {
         (&_ld_itcm_destination)[i] = (&_ld_itcm_flash_copy)[i];
     }
 
@@ -204,9 +207,11 @@ __attribute__((used, naked)) void Reset_Handler(void) {
     MPU->RBAR = ARM_MPU_RBAR(13, 0x20000000U);
     MPU->RASR = ARM_MPU_RASR(EXECUTION, ARM_MPU_AP_FULL, NORMAL, NOT_SHAREABLE, CACHEABLE, BUFFERABLE, NO_SUBREGIONS, ARM_MPU_REGION_SIZE_32KB);
 
-    // This is OCRAM.
+    // This is OCRAM. We mark it as shareable so that it isn't cached. This makes USB work at the
+    // cost of 1/4 speed OCRAM accesses. It will leave more room for caching data from the flash
+    // too which might be a net win.
     MPU->RBAR = ARM_MPU_RBAR(14, 0x20200000U);
-    MPU->RASR = ARM_MPU_RASR(EXECUTION, ARM_MPU_AP_FULL, NORMAL, NOT_SHAREABLE, CACHEABLE, BUFFERABLE, NO_SUBREGIONS, ARM_MPU_REGION_SIZE_512KB);
+    MPU->RASR = ARM_MPU_RASR(EXECUTION, ARM_MPU_AP_FULL, NORMAL, SHAREABLE, CACHEABLE, BUFFERABLE, NO_SUBREGIONS, ARM_MPU_REGION_SIZE_512KB);
 
     // We steal 64k from FlexRAM for ITCM and DTCM so disable those memory regions here.
     MPU->RBAR = ARM_MPU_RBAR(15, 0x20280000U);
@@ -220,22 +225,22 @@ __attribute__((used, naked)) void Reset_Handler(void) {
     SCB_EnableICache();
 
     // Copy all of the data to run from DTCM.
-    for (uint32_t i = 0; i < ((size_t) &_ld_dtcm_data_size) / 4; i++) {
+    for (uint32_t i = 0; i < ((size_t)&_ld_dtcm_data_size) / 4; i++) {
         (&_ld_dtcm_data_destination)[i] = (&_ld_dtcm_data_flash_copy)[i];
     }
 
     // Clear DTCM bss.
-    for (uint32_t i = 0; i < ((size_t) &_ld_dtcm_bss_size) / 4; i++) {
+    for (uint32_t i = 0; i < ((size_t)&_ld_dtcm_bss_size) / 4; i++) {
         (&_ld_dtcm_bss_start)[i] = 0;
     }
 
     // Copy all of the data to run from OCRAM.
-    for (uint32_t i = 0; i < ((size_t) &_ld_ocram_data_size) / 4; i++) {
+    for (uint32_t i = 0; i < ((size_t)&_ld_ocram_data_size) / 4; i++) {
         (&_ld_ocram_data_destination)[i] = (&_ld_ocram_data_flash_copy)[i];
     }
 
     // Clear OCRAM bss.
-    for (uint32_t i = 0; i < ((size_t) &_ld_ocram_bss_size) / 4; i++) {
+    for (uint32_t i = 0; i < ((size_t)&_ld_ocram_bss_size) / 4; i++) {
         (&_ld_ocram_bss_start)[i] = 0;
     }
 
@@ -244,17 +249,20 @@ __attribute__((used, naked)) void Reset_Handler(void) {
 }
 
 safe_mode_t port_init(void) {
+    CLOCK_SetMode(kCLOCK_ModeRun);
+
     clocks_init();
 
-    // Configure millisecond timer initialization.
-    tick_init();
-
-#if CIRCUITPY_RTC
+    #if CIRCUITPY_RTC
     rtc_init();
-#endif
+    #endif
 
-    // Reset everything into a known state before board_init.
-    reset_port();
+    // Always enable the SNVS interrupt. The GPC won't wake us up unless at least one interrupt is
+    // enabled. It won't occur very often so it'll be low overhead.
+    NVIC_EnableIRQ(SNVS_HP_WRAPPER_IRQn);
+
+    // Note that `reset_port` CANNOT GO HERE, unlike other ports, because `board_init` hasn't been
+    // run yet, which uses `never_reset` to protect critical pins from being reset by  `reset_port`.
 
     if (board_requests_safe_mode()) {
         return USER_SAFE_MODE;
@@ -264,43 +272,45 @@ safe_mode_t port_init(void) {
 }
 
 void reset_port(void) {
-    //reset_sercoms();
+    spi_reset();
 
-#if CIRCUITPY_AUDIOIO
+    #if CIRCUITPY_AUDIOIO
     audio_dma_reset();
     audioout_reset();
-#endif
-#if CIRCUITPY_AUDIOBUSIO
+    #endif
+    #if CIRCUITPY_AUDIOBUSIO
     i2sout_reset();
-    //pdmin_reset();
-#endif
+    // pdmin_reset();
+    #endif
 
-#if CIRCUITPY_TOUCHIO && CIRCUITPY_TOUCHIO_USE_NATIVE
+    #if CIRCUITPY_TOUCHIO && CIRCUITPY_TOUCHIO_USE_NATIVE
     touchin_reset();
-#endif
+    #endif
 
 //    eic_reset();
 
-#if CIRCUITPY_PULSEIO
+    #if CIRCUITPY_PULSEIO
     pulseout_reset();
+    #endif
+    #if CIRCUITPY_PWMIO
     pwmout_reset();
-#endif
+    #endif
 
-#if CIRCUITPY_RTC
+    #if CIRCUITPY_RTC
     rtc_reset();
-#endif
+    #endif
 
-#if CIRCUITPY_GAMEPAD
+    #if CIRCUITPY_GAMEPAD
     gamepad_reset();
-#endif
-#if CIRCUITPY_GAMEPADSHIFT
+    #endif
+    #if CIRCUITPY_GAMEPADSHIFT
     gamepadshift_reset();
-#endif
-#if CIRCUITPY_PEW
+    #endif
+    #if CIRCUITPY_PEW
     pew_reset();
-#endif
+    #endif
 
-    //reset_event_system();
+    // reset_event_system();
 
     reset_all_pins();
 }
@@ -316,11 +326,15 @@ void reset_cpu(void) {
 
 extern uint32_t _ld_heap_start, _ld_heap_end, _ld_stack_top, _ld_stack_bottom;
 uint32_t *port_stack_get_limit(void) {
-    return &_ld_heap_start;
+    return &_ld_stack_bottom;
 }
 
 uint32_t *port_stack_get_top(void) {
     return &_ld_stack_top;
+}
+
+bool port_has_fixed_stack(void) {
+    return true;
 }
 
 uint32_t *port_heap_get_bottom(void) {
@@ -332,7 +346,7 @@ uint32_t *port_heap_get_top(void) {
     return &_ld_heap_end;
 }
 
-// Place the word to save just after our BSS section that gets blanked.
+// Place the word into the low power section of the SNVS.
 void port_set_saved_word(uint32_t value) {
     SNVS->LPGPR[1] = value;
 }
@@ -341,47 +355,104 @@ uint32_t port_get_saved_word(void) {
     return SNVS->LPGPR[1];
 }
 
+uint64_t port_get_raw_ticks(uint8_t *subticks) {
+    uint64_t ticks = 0;
+    uint64_t next_ticks = 1;
+    while (ticks != next_ticks) {
+        ticks = next_ticks;
+        next_ticks = ((uint64_t)SNVS->HPRTCMR) << 32 | SNVS->HPRTCLR;
+    }
+    if (subticks != NULL) {
+        *subticks = ticks % 32;
+    }
+    return ticks / 32;
+}
+
+void SNVS_HP_WRAPPER_IRQHandler(void) {
+    if ((SNVS->HPSR & SNVS_HPSR_PI_MASK) != 0) {
+        supervisor_tick();
+        SNVS->HPSR = SNVS_HPSR_PI_MASK;
+    }
+    if ((SNVS->HPSR & SNVS_HPSR_HPTA_MASK) != 0) {
+        SNVS->HPSR = SNVS_HPSR_HPTA_MASK;
+    }
+}
+
+// Enable 1/1024 second tick.
+void port_enable_tick(void) {
+    uint32_t hpcr = SNVS->HPCR;
+    hpcr &= ~SNVS_HPCR_PI_FREQ_MASK;
+    SNVS->HPCR = hpcr | SNVS_HPCR_PI_FREQ(5) | SNVS_HPCR_PI_EN_MASK;
+}
+
+// Disable 1/1024 second tick.
+void port_disable_tick(void) {
+    SNVS->HPCR &= ~SNVS_HPCR_PI_EN_MASK;
+}
+
+void port_interrupt_after_ticks(uint32_t ticks) {
+    uint8_t subticks;
+    uint64_t current_ticks = port_get_raw_ticks(&subticks);
+    current_ticks += ticks;
+    SNVS->HPCR &= ~SNVS_HPCR_HPTA_EN_MASK;
+    // Wait for the alarm to be disabled.
+    while ((SNVS->HPCR & SNVS_HPCR_HPTA_EN_MASK) != 0) {
+    }
+    SNVS->HPTAMR = current_ticks >> (32 - 5);
+    SNVS->HPTALR = current_ticks << 5 | subticks;
+    SNVS->HPCR |= SNVS_HPCR_HPTA_EN_MASK;
+}
+
+void port_idle_until_interrupt(void) {
+    // App note here: https://www.nxp.com/docs/en/application-note/AN12085.pdf
+
+    // Clear the FPU interrupt because it can prevent us from sleeping.
+    if (__get_FPSCR() & ~(0x9f)) {
+        __set_FPSCR(__get_FPSCR() & ~(0x9f));
+        (void)__get_FPSCR();
+    }
+    NVIC_ClearPendingIRQ(SNVS_HP_WRAPPER_IRQn);
+    CLOCK_SetMode(kCLOCK_ModeWait);
+    __WFI();
+    CLOCK_SetMode(kCLOCK_ModeRun);
+}
+
 /**
  * \brief Default interrupt handler for unused IRQs.
  */
-__attribute__((used)) void MemManage_Handler(void)
-{
+__attribute__((used)) void MemManage_Handler(void) {
     reset_into_safe_mode(MEM_MANAGE);
     while (true) {
-        asm("nop;");
+        asm ("nop;");
     }
 }
 
 /**
  * \brief Default interrupt handler for unused IRQs.
  */
-__attribute__((used)) void BusFault_Handler(void)
-{
+__attribute__((used)) void BusFault_Handler(void) {
     reset_into_safe_mode(MEM_MANAGE);
     while (true) {
-        asm("nop;");
+        asm ("nop;");
     }
 }
 
 /**
  * \brief Default interrupt handler for unused IRQs.
  */
-__attribute__((used)) void UsageFault_Handler(void)
-{
+__attribute__((used)) void UsageFault_Handler(void) {
     reset_into_safe_mode(MEM_MANAGE);
     while (true) {
-        asm("nop;");
+        asm ("nop;");
     }
 }
 
 /**
  * \brief Default interrupt handler for unused IRQs.
  */
-__attribute__((used)) void HardFault_Handler(void)
-{
+__attribute__((used)) void HardFault_Handler(void) {
     reset_into_safe_mode(HARD_CRASH);
     while (true) {
-        asm("nop;");
+        asm ("nop;");
     }
 }
-

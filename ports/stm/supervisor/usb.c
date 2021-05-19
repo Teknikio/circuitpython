@@ -26,7 +26,6 @@
  */
 
 
-#include "tick.h"
 #include "supervisor/usb.h"
 #include "lib/utils/interrupt_char.h"
 #include "lib/mp-readline/readline.h"
@@ -38,33 +37,33 @@
 
 STATIC void init_usb_vbus_sense(void) {
 
-#if (BOARD_NO_VBUS_SENSE)
+    #if (BOARD_NO_VBUS_SENSE)
     // Disable VBUS sensing
     #ifdef USB_OTG_GCCFG_VBDEN
-        // Deactivate VBUS Sensing B
-        USB_OTG_FS->GCCFG &= ~USB_OTG_GCCFG_VBDEN;
+    // Deactivate VBUS Sensing B
+    USB_OTG_FS->GCCFG &= ~USB_OTG_GCCFG_VBDEN;
 
-        // B-peripheral session valid override enable
-        USB_OTG_FS->GOTGCTL |= USB_OTG_GOTGCTL_BVALOEN;
-        USB_OTG_FS->GOTGCTL |= USB_OTG_GOTGCTL_BVALOVAL;
+    // B-peripheral session valid override enable
+    USB_OTG_FS->GOTGCTL |= USB_OTG_GOTGCTL_BVALOEN;
+    USB_OTG_FS->GOTGCTL |= USB_OTG_GOTGCTL_BVALOVAL;
     #else
-        USB_OTG_FS->GCCFG |= USB_OTG_GCCFG_NOVBUSSENS;
-        USB_OTG_FS->GCCFG &= ~USB_OTG_GCCFG_VBUSBSEN;
-        USB_OTG_FS->GCCFG &= ~USB_OTG_GCCFG_VBUSASEN;
+    USB_OTG_FS->GCCFG |= USB_OTG_GCCFG_NOVBUSSENS;
+    USB_OTG_FS->GCCFG &= ~USB_OTG_GCCFG_VBUSBSEN;
+    USB_OTG_FS->GCCFG &= ~USB_OTG_GCCFG_VBUSASEN;
     #endif
-#else
+    #else
     // Enable VBUS hardware sensing
     #ifdef USB_OTG_GCCFG_VBDEN
-        USB_OTG_FS->GCCFG |= USB_OTG_GCCFG_VBDEN;
+    USB_OTG_FS->GCCFG |= USB_OTG_GCCFG_VBDEN;
     #else
-        USB_OTG_FS->GCCFG &= ~USB_OTG_GCCFG_NOVBUSSENS;
-        USB_OTG_FS->GCCFG |= USB_OTG_GCCFG_VBUSBSEN; // B Device sense
+    USB_OTG_FS->GCCFG &= ~USB_OTG_GCCFG_NOVBUSSENS;
+    USB_OTG_FS->GCCFG |= USB_OTG_GCCFG_VBUSBSEN;     // B Device sense
     #endif
-#endif
+    #endif
 }
 
 void init_usb_hardware(void) {
-    //TODO: if future chips overload this with options, move to peripherals management.
+    // TODO: if future chips overload this with options, move to peripherals management.
 
     GPIO_InitTypeDef GPIO_InitStruct = {0};
     /**USB_OTG_FS GPIO Configuration
@@ -74,7 +73,7 @@ void init_usb_hardware(void) {
     */
     __HAL_RCC_GPIOA_CLK_ENABLE();
 
-      /* Configure DM DP Pins */
+    /* Configure DM DP Pins */
     GPIO_InitStruct.Pin = GPIO_PIN_11 | GPIO_PIN_12;
     GPIO_InitStruct.Speed = GPIO_SPEED_HIGH;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
@@ -87,6 +86,8 @@ void init_usb_hardware(void) {
     HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
     never_reset_pin_number(0, 11);
     never_reset_pin_number(0, 12);
+    claim_pin(0, 11);
+    claim_pin(0, 12);
 
     /* Configure VBUS Pin */
     #if  !(BOARD_NO_VBUS_SENSE)
@@ -95,6 +96,7 @@ void init_usb_hardware(void) {
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
     never_reset_pin_number(0, 9);
+    claim_pin(0, 9);
     #endif
 
     /* This for ID line debug */
@@ -109,6 +111,7 @@ void init_usb_hardware(void) {
     #endif
     HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
     never_reset_pin_number(0, 10);
+    claim_pin(0, 10);
 
     #ifdef STM32F412Zx
     /* Configure POWER_SWITCH IO pin (F412 ONLY)*/
@@ -117,8 +120,8 @@ void init_usb_hardware(void) {
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     HAL_GPIO_Init(GPIOG, &GPIO_InitStruct);
     never_reset_pin_number(0, 8);
+    claim_pin(0, 8);
     #endif
-
 
     #if CPY_STM32H7
     HAL_PWREx_EnableUSBVoltageDetector();
@@ -132,5 +135,5 @@ void init_usb_hardware(void) {
 }
 
 void OTG_FS_IRQHandler(void) {
-  tud_int_handler(0);
+    usb_irq_handler();
 }

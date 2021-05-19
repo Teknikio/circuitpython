@@ -4,7 +4,7 @@
  * The MIT License (MIT)
  *
  * Copyright (c) 2018 Noralf Trønnes
- * Copyright (c) 2013, 2014 Damien P. George
+ * SPDX-FileCopyrightText: Copyright (c) 2013, 2014 Damien P. George
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -38,14 +38,12 @@
 
 const rtc_rtc_obj_t rtc_rtc_obj = {{&rtc_rtc_type}};
 
-//| .. currentmodule:: rtc
+//| class RTC:
+//|     """Real Time Clock"""
 //|
-//| :class:`RTC` --- Real Time Clock
-//| --------------------------------
-//|
-//| .. class:: RTC()
-//|
-//|   This class represents the onboard Real Time Clock. It is a singleton and will always return the same instance.
+//|     def __init__(self) -> None:
+//|         """This class represents the onboard Real Time Clock. It is a singleton and will always return the same instance."""
+//|         ...
 //|
 STATIC mp_obj_t rtc_rtc_make_new(const mp_obj_type_t *type, size_t n_args, const mp_obj_t *args, mp_map_t *kw_args) {
     // No arguments
@@ -55,25 +53,24 @@ STATIC mp_obj_t rtc_rtc_make_new(const mp_obj_type_t *type, size_t n_args, const
     return (mp_obj_t)&rtc_rtc_obj;
 }
 
-//|   .. attribute:: datetime
+//|     datetime: time.struct_time
+//|     """The current date and time of the RTC as a `time.struct_time`.
 //|
-//|       The current date and time of the RTC as a `time.struct_time`.
+//|     This must be set to the current date and time whenever the board loses power::
 //|
-//|       This must be set to the current date and time whenever the board loses power::
+//|       import rtc
+//|       import time
 //|
-//|         import rtc
-//|         import time
-//|
-//|         r = rtc.RTC()
-//|         r.datetime = rtctime.struct_time((2019, 5, 29, 15, 14, 15, 0, -1, -1))
+//|       r = rtc.RTC()
+//|       r.datetime = time.struct_time((2019, 5, 29, 15, 14, 15, 0, -1, -1))
 //|
 //|
-//|       Once set, the RTC will automatically update this value as time passes. You can read this
-//|       property to get a snapshot of the current time::
+//|     Once set, the RTC will automatically update this value as time passes. You can read this
+//|     property to get a snapshot of the current time::
 //|
-//|         current_time = r.datetime
-//|         print(current_time)
-//|         # struct_time(tm_year=2019, tm_month=5, ...)
+//|       current_time = r.datetime
+//|       print(current_time)
+//|       # struct_time(tm_year=2019, tm_month=5, ...)"""
 //|
 STATIC mp_obj_t rtc_rtc_obj_get_datetime(mp_obj_t self_in) {
     timeutils_struct_time_t tm;
@@ -94,15 +91,20 @@ const mp_obj_property_t rtc_rtc_datetime_obj = {
     .base.type = &mp_type_property,
     .proxy = {(mp_obj_t)&rtc_rtc_get_datetime_obj,
               (mp_obj_t)&rtc_rtc_set_datetime_obj,
-              (mp_obj_t)&mp_const_none_obj},
+              MP_ROM_NONE},
 };
 
-//|   .. attribute:: calibration
-//|
-//|     The RTC calibration value as an `int`.
+//|     calibration: int
+//|     """The RTC calibration value as an `int`.
 //|
 //|     A positive value speeds up the clock and a negative value slows it down.
-//|     Range and value is hardware specific, but one step is often approximately 1 ppm.
+//|     Range and value is hardware specific, but one step is often approximately 1 ppm::
+//|
+//|       import rtc
+//|       import time
+//|
+//|       r = rtc.RTC()
+//|       r.calibration = 1"""
 //|
 STATIC mp_obj_t rtc_rtc_obj_get_calibration(mp_obj_t self_in) {
     int calibration = common_hal_rtc_get_calibration();
@@ -120,7 +122,7 @@ const mp_obj_property_t rtc_rtc_calibration_obj = {
     .base.type = &mp_type_property,
     .proxy = {(mp_obj_t)&rtc_rtc_get_calibration_obj,
               (mp_obj_t)&rtc_rtc_set_calibration_obj,
-              (mp_obj_t)&mp_const_none_obj},
+              MP_ROM_NONE},
 };
 
 STATIC const mp_rom_map_elem_t rtc_rtc_locals_dict_table[] = {
@@ -133,5 +135,5 @@ const mp_obj_type_t rtc_rtc_type = {
     { &mp_type_type },
     .name = MP_QSTR_RTC,
     .make_new = rtc_rtc_make_new,
-    .locals_dict = (mp_obj_dict_t*)&rtc_rtc_locals_dict,
+    .locals_dict = (mp_obj_dict_t *)&rtc_rtc_locals_dict,
 };

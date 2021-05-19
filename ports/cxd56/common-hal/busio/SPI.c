@@ -26,19 +26,26 @@
 
 #include <arch/chip/pin.h>
 #include <cxd56_spi.h>
+#include <cxd56_pinconfig.h>
 
 #include "py/runtime.h"
 
 #include "shared-bindings/busio/SPI.h"
 
-void common_hal_busio_spi_construct(busio_spi_obj_t *self, const mcu_pin_obj_t *clock, 
+void common_hal_busio_spi_construct(busio_spi_obj_t *self, const mcu_pin_obj_t *clock,
     const mcu_pin_obj_t *mosi, const mcu_pin_obj_t *miso) {
     int port = -1;
 
-    if (clock->number == PIN_SPI4_SCK && mosi->number == PIN_SPI4_MOSI && miso->number == PIN_SPI4_MISO) {
+    if (clock->number == PIN_SPI4_SCK &&
+        (mosi == NULL || mosi->number == PIN_SPI4_MOSI) &&
+        (miso == NULL || miso->number == PIN_SPI4_MISO)) {
         port = 4;
-    } else if (clock->number == PIN_EMMC_CLK && mosi->number == PIN_EMMC_DATA0 && miso->number == PIN_EMMC_DATA1) {
+        CXD56_PIN_CONFIGS(PINCONFS_SPI4);
+    } else if (clock->number == PIN_EMMC_CLK &&
+               (mosi == NULL || mosi->number == PIN_EMMC_DATA0) &&
+               (miso == NULL || miso->number == PIN_EMMC_DATA1)) {
         port = 5;
+        CXD56_PIN_CONFIGS(PINCONFS_EMMCA_SPI5);
     }
 
     if (port < 0) {
@@ -130,7 +137,7 @@ bool common_hal_busio_spi_read(busio_spi_obj_t *self, uint8_t *data, size_t len,
     return true;
 }
 
-bool common_hal_busio_spi_transfer(busio_spi_obj_t *self, uint8_t *data_out, uint8_t *data_in, size_t len) {
+bool common_hal_busio_spi_transfer(busio_spi_obj_t *self, const uint8_t *data_out, uint8_t *data_in, size_t len) {
     SPI_EXCHANGE(self->spi_dev, data_out, data_in, len);
 
     return true;
@@ -140,7 +147,7 @@ uint32_t common_hal_busio_spi_get_frequency(busio_spi_obj_t *self) {
     return self->frequency;
 }
 
-uint8_t common_hal_busio_spi_get_phase(busio_spi_obj_t* self) {
+uint8_t common_hal_busio_spi_get_phase(busio_spi_obj_t *self) {
     return self->phase;
 }
 

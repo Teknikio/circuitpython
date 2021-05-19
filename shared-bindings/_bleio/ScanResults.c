@@ -32,16 +32,12 @@
 #include "py/runtime.h"
 #include "shared-bindings/_bleio/ScanResults.h"
 
-//| .. currentmodule:: _bleio
-//|
-//| :class:`ScanResults` -- An Iterator over BLE scanning results
-//| ===============================================================
-//|
-//| Iterates over advertising data received while scanning. This object is always created
-//| by a `_bleio.Adapter`: it has no user-visible constructor.
+//| class ScanResults:
+//|     """Iterates over advertising data received while scanning. This object is always created
+//|     by a `_bleio.Adapter`: it has no user-visible constructor."""
 //|
 STATIC mp_obj_t scanresults_iternext(mp_obj_t self_in) {
-    mp_check_self(MP_OBJ_IS_TYPE(self_in, &bleio_scanresults_type));
+    mp_check_self(mp_obj_is_type(self_in, &bleio_scanresults_type));
     bleio_scanresults_obj_t *self = MP_OBJ_TO_PTR(self_in);
     mp_obj_t scan_entry = common_hal_bleio_scanresults_next(self);
     if (scan_entry != mp_const_none) {
@@ -50,18 +46,18 @@ STATIC mp_obj_t scanresults_iternext(mp_obj_t self_in) {
     return MP_OBJ_STOP_ITERATION;
 }
 
-//| .. class:: ScanResults()
+//|     def __init__(self) -> None:
+//|         """Cannot be instantiated directly. Use `_bleio.Adapter.start_scan`."""
+//|         ...
 //|
-//|   Cannot be instantiated directly. Use `_bleio.Adapter.start_scan`.
+//|     def __iter__(self) -> Iterator[ScanEntry]:
+//|         """Returns itself since it is the iterator."""
+//|         ...
 //|
-//|   .. method:: __iter__()
-//|
-//|     Returns itself since it is the iterator.
-//|
-//|   .. method:: __next__()
-//|
-//|     Returns the next `_bleio.ScanEntry`. Blocks if none have been received and scanning is still
-//|     active. Raises `StopIteration` if scanning is finished and no other results are available.
+//|     def __next__(self) -> ScanEntry:
+//|         """Returns the next `_bleio.ScanEntry`. Blocks if none have been received and scanning is still
+//|         active. Raises `StopIteration` if scanning is finished and no other results are available."""
+//|         ...
 //|
 
 const mp_obj_type_t bleio_scanresults_type = {

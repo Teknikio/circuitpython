@@ -31,11 +31,11 @@
 #include "py/mperrno.h"
 #include "py/runtime.h"
 
-static uint32_t read_word(uint16_t* bmp_header, uint16_t index) {
+static uint32_t read_word(uint16_t *bmp_header, uint16_t index) {
     return bmp_header[index] | bmp_header[index + 1] << 16;
 }
 
-void common_hal_displayio_ondiskbitmap_construct(displayio_ondiskbitmap_t *self, pyb_file_obj_t* file) {
+void common_hal_displayio_ondiskbitmap_construct(displayio_ondiskbitmap_t *self, pyb_file_obj_t *file) {
     // Load the wave
     self->file = file;
     uint16_t bmp_header[69];
@@ -57,13 +57,13 @@ void common_hal_displayio_ondiskbitmap_construct(displayio_ondiskbitmap_t *self,
     uint32_t compression = read_word(bmp_header, 15);
     uint32_t number_of_colors = read_word(bmp_header, 23);
 
-    bool indexed = ((bits_per_pixel <= 8) && (number_of_colors != 0));
-    self->bitfield_compressed  = (compression == 3);
+    bool indexed = bits_per_pixel <= 8;
+    self->bitfield_compressed = (compression == 3);
     self->bits_per_pixel = bits_per_pixel;
     self->width = read_word(bmp_header, 9);
     self->height = read_word(bmp_header, 11);
 
-    if (bits_per_pixel == 16){
+    if (bits_per_pixel == 16) {
         if (((header_size >= 56)) || (self->bitfield_compressed)) {
             self->r_bitmask = read_word(bmp_header, 27);
             self->g_bitmask = read_word(bmp_header, 29);
@@ -75,6 +75,9 @@ void common_hal_displayio_ondiskbitmap_construct(displayio_ondiskbitmap_t *self,
             self->b_bitmask = 0x1f;
         }
     } else if (indexed && self->bits_per_pixel != 1) {
+        if (number_of_colors == 0) {
+            number_of_colors = 1 << bits_per_pixel;
+        }
         uint16_t palette_size = number_of_colors * sizeof(uint32_t);
         uint16_t palette_offset = 0xe + header_size;
 
@@ -98,9 +101,9 @@ void common_hal_displayio_ondiskbitmap_construct(displayio_ondiskbitmap_t *self,
         mp_raise_ValueError_varg(translate("Only monochrome, indexed 4bpp or 8bpp, and 16bpp or greater BMPs supported: %d bpp given"), bits_per_pixel);
     }
 
-    uint8_t bytes_per_pixel = (self->bits_per_pixel / 8)  ? (self->bits_per_pixel /8) : 1;
+    uint8_t bytes_per_pixel = (self->bits_per_pixel / 8)  ? (self->bits_per_pixel / 8) : 1;
     uint8_t pixels_per_byte = 8 / self->bits_per_pixel;
-    if (pixels_per_byte == 0){
+    if (pixels_per_byte == 0) {
         self->stride = (self->width * bytes_per_pixel);
         // Rows are word aligned.
         if (self->stride % 4 != 0) {
@@ -118,15 +121,15 @@ void common_hal_displayio_ondiskbitmap_construct(displayio_ondiskbitmap_t *self,
 
 
 uint32_t common_hal_displayio_ondiskbitmap_get_pixel(displayio_ondiskbitmap_t *self,
-        int16_t x, int16_t y) {
+    int16_t x, int16_t y) {
     if (x < 0 || x >= self->width || y < 0 || y >= self->height) {
         return 0;
     }
 
     uint32_t location;
-    uint8_t bytes_per_pixel = (self->bits_per_pixel / 8)  ? (self->bits_per_pixel /8) : 1;
+    uint8_t bytes_per_pixel = (self->bits_per_pixel / 8)  ? (self->bits_per_pixel / 8) : 1;
     uint8_t pixels_per_byte = 8 / self->bits_per_pixel;
-    if (pixels_per_byte == 0){
+    if (pixels_per_byte == 0) {
         location = self->data_offset + (self->height - y - 1) * self->stride + x * bytes_per_pixel;
     } else {
         location = self->data_offset + (self->height - y - 1) * self->stride + x / pixels_per_byte;
@@ -156,12 +159,12 @@ uint32_t common_hal_displayio_ondiskbitmap_get_pixel(displayio_ondiskbitmap_t *s
             return self->palette_data[index];
         } else if (bytes_per_pixel == 2) {
             if (self->g_bitmask == 0x07e0) { // 565
-                red =((pixel_data & self->r_bitmask) >>11);
-                green = ((pixel_data & self->g_bitmask) >>5);
+                red = ((pixel_data & self->r_bitmask) >> 11);
+                green = ((pixel_data & self->g_bitmask) >> 5);
                 blue = ((pixel_data & self->b_bitmask) >> 0);
             } else { // 555
-                red =((pixel_data & self->r_bitmask) >>10);
-                green = ((pixel_data & self->g_bitmask) >>4);
+                red = ((pixel_data & self->r_bitmask) >> 10);
+                green = ((pixel_data & self->g_bitmask) >> 4);
                 blue = ((pixel_data & self->b_bitmask) >> 0);
             }
             tmp = (red << 19 | green << 10 | blue << 3);

@@ -29,6 +29,7 @@
 #include "py/mpstate.h"
 #include "shared-bindings/gamepad/__init__.h"
 #include "shared-bindings/gamepad/GamePad.h"
+#include "supervisor/shared/tick.h"
 
 #include "shared-bindings/digitalio/DigitalInOut.h"
 
@@ -37,14 +38,14 @@ void gamepad_tick(void) {
     uint8_t current = 0;
     uint8_t bit = 1;
 
-    void* singleton = MP_STATE_VM(gamepad_singleton);
-    if (singleton == NULL || !MP_OBJ_IS_TYPE(MP_OBJ_FROM_PTR(singleton), &gamepad_type)) {
+    void *singleton = MP_STATE_VM(gamepad_singleton);
+    if (singleton == NULL || !mp_obj_is_type(MP_OBJ_FROM_PTR(singleton), &gamepad_type)) {
         return;
     }
 
     gamepad_obj_t *self = MP_OBJ_TO_PTR(singleton);
     for (int i = 0; i < 8; ++i) {
-        digitalio_digitalinout_obj_t* pin = self->pins[i];
+        digitalio_digitalinout_obj_t *pin = self->pins[i];
         if (!pin) {
             break;
         }
@@ -59,5 +60,8 @@ void gamepad_tick(void) {
 }
 
 void gamepad_reset(void) {
+    if (MP_STATE_VM(gamepad_singleton)) {
+        supervisor_disable_tick();
+    }
     MP_STATE_VM(gamepad_singleton) = NULL;
 }

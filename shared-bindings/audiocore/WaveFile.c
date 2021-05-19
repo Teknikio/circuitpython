@@ -33,50 +33,48 @@
 #include "shared-bindings/util.h"
 #include "supervisor/shared/translate.h"
 
-//| .. currentmodule:: audiocore
+//| class WaveFile:
+//|     """Load a wave file for audio playback
 //|
-//| :class:`WaveFile` -- Load a wave file for audio playback
-//| ========================================================
+//|     A .wav file prepped for audio playback. Only mono and stereo files are supported. Samples must
+//|     be 8 bit unsigned or 16 bit signed. If a buffer is provided, it will be used instead of allocating
+//|     an internal buffer."""
 //|
-//| A .wav file prepped for audio playback. Only mono and stereo files are supported. Samples must
-//| be 8 bit unsigned or 16 bit signed. If a buffer is provided, it will be used instead of allocating
-//| an internal buffer.
+//|     def __init__(self, file: typing.BinaryIO, buffer: WriteableBuffer) -> None:
+//|         """Load a .wav file for playback with `audioio.AudioOut` or `audiobusio.I2SOut`.
 //|
-//| .. class:: WaveFile(file[, buffer])
-//|
-//|   Load a .wav file for playback with `audioio.AudioOut` or `audiobusio.I2SOut`.
-//|
-//|   :param typing.BinaryIO file: Already opened wave file
-//|   :param bytearray buffer: Optional pre-allocated buffer, that will be split in half and used for double-buffering of the data. If not provided, two 512 byte buffers are allocated internally.
+//|         :param typing.BinaryIO file: Already opened wave file
+//|         :param ~_typing.WriteableBuffer buffer: Optional pre-allocated buffer, that will be split in half and used for double-buffering of the data. If not provided, two 256 byte buffers are allocated internally.
 //|
 //|
-//|   Playing a wave file from flash::
+//|         Playing a wave file from flash::
 //|
-//|     import board
-//|     import audiocore
-//|     import audioio
-//|     import digitalio
+//|           import board
+//|           import audiocore
+//|           import audioio
+//|           import digitalio
 //|
-//|     # Required for CircuitPlayground Express
-//|     speaker_enable = digitalio.DigitalInOut(board.SPEAKER_ENABLE)
-//|     speaker_enable.switch_to_output(value=True)
+//|           # Required for CircuitPlayground Express
+//|           speaker_enable = digitalio.DigitalInOut(board.SPEAKER_ENABLE)
+//|           speaker_enable.switch_to_output(value=True)
 //|
-//|     data = open("cplay-5.1-16bit-16khz.wav", "rb")
-//|     wav = audiocore.WaveFile(data)
-//|     a = audioio.AudioOut(board.A0)
+//|           data = open("cplay-5.1-16bit-16khz.wav", "rb")
+//|           wav = audiocore.WaveFile(data)
+//|           a = audioio.AudioOut(board.A0)
 //|
-//|     print("playing")
-//|     a.play(wav)
-//|     while a.playing:
-//|       pass
-//|     print("stopped")
+//|           print("playing")
+//|           a.play(wav)
+//|           while a.playing:
+//|             pass
+//|           print("stopped")"""
+//|         ...
 //|
 STATIC mp_obj_t audioio_wavefile_make_new(const mp_obj_type_t *type, size_t n_args, const mp_obj_t *args, mp_map_t *kw_args) {
     mp_arg_check_num(n_args, kw_args, 1, 2, false);
 
     audioio_wavefile_obj_t *self = m_new_obj(audioio_wavefile_obj_t);
     self->base.type = &audioio_wavefile_type;
-    if (!MP_OBJ_IS_TYPE(args[0], &mp_type_fileio)) {
+    if (!mp_obj_is_type(args[0], &mp_type_fileio)) {
         mp_raise_TypeError(translate("file must be a file opened in byte mode"));
     }
     uint8_t *buffer = NULL;
@@ -88,15 +86,14 @@ STATIC mp_obj_t audioio_wavefile_make_new(const mp_obj_type_t *type, size_t n_ar
         buffer_size = bufinfo.len;
     }
     common_hal_audioio_wavefile_construct(self, MP_OBJ_TO_PTR(args[0]),
-                                          buffer, buffer_size);
+        buffer, buffer_size);
 
     return MP_OBJ_FROM_PTR(self);
 }
 
-//|   .. method:: deinit()
-//|
-//|      Deinitialises the WaveFile and releases all memory resources for reuse.
-//|
+//|     def deinit(self) -> None:
+//|         """Deinitialises the WaveFile and releases all memory resources for reuse."""
+//|         ...
 STATIC mp_obj_t audioio_wavefile_deinit(mp_obj_t self_in) {
     audioio_wavefile_obj_t *self = MP_OBJ_TO_PTR(self_in);
     common_hal_audioio_wavefile_deinit(self);
@@ -110,16 +107,16 @@ STATIC void check_for_deinit(audioio_wavefile_obj_t *self) {
     }
 }
 
-//|   .. method:: __enter__()
-//|
-//|      No-op used by Context Managers.
+//|     def __enter__(self) -> WaveFile:
+//|         """No-op used by Context Managers."""
+//|         ...
 //|
 //  Provided by context manager helper.
 
-//|   .. method:: __exit__()
-//|
-//|      Automatically deinitializes the hardware when exiting a context. See
-//|      :ref:`lifetime-and-contextmanagers` for more info.
+//|     def __exit__(self) -> None:
+//|         """Automatically deinitializes the hardware when exiting a context. See
+//|         :ref:`lifetime-and-contextmanagers` for more info."""
+//|         ...
 //|
 STATIC mp_obj_t audioio_wavefile_obj___exit__(size_t n_args, const mp_obj_t *args) {
     (void)n_args;
@@ -128,11 +125,10 @@ STATIC mp_obj_t audioio_wavefile_obj___exit__(size_t n_args, const mp_obj_t *arg
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(audioio_wavefile___exit___obj, 4, 4, audioio_wavefile_obj___exit__);
 
-//|   .. attribute:: sample_rate
-//|
-//|     32 bit value that dictates how quickly samples are loaded into the DAC
+//|     sample_rate: int
+//|     """32 bit value that dictates how quickly samples are loaded into the DAC
 //|     in Hertz (cycles per second). When the sample is looped, this can change
-//|     the pitch output without changing the underlying sample.
+//|     the pitch output without changing the underlying sample."""
 //|
 STATIC mp_obj_t audioio_wavefile_obj_get_sample_rate(mp_obj_t self_in) {
     audioio_wavefile_obj_t *self = MP_OBJ_TO_PTR(self_in);
@@ -153,12 +149,11 @@ const mp_obj_property_t audioio_wavefile_sample_rate_obj = {
     .base.type = &mp_type_property,
     .proxy = {(mp_obj_t)&audioio_wavefile_get_sample_rate_obj,
               (mp_obj_t)&audioio_wavefile_set_sample_rate_obj,
-              (mp_obj_t)&mp_const_none_obj},
+              MP_ROM_NONE},
 };
 
-//|   .. attribute:: bits_per_sample
-//|
-//|     Bits per sample. (read only)
+//|     bits_per_sample: int
+//|     """Bits per sample. (read only)"""
 //|
 STATIC mp_obj_t audioio_wavefile_obj_get_bits_per_sample(mp_obj_t self_in) {
     audioio_wavefile_obj_t *self = MP_OBJ_TO_PTR(self_in);
@@ -170,13 +165,11 @@ MP_DEFINE_CONST_FUN_OBJ_1(audioio_wavefile_get_bits_per_sample_obj, audioio_wave
 const mp_obj_property_t audioio_wavefile_bits_per_sample_obj = {
     .base.type = &mp_type_property,
     .proxy = {(mp_obj_t)&audioio_wavefile_get_bits_per_sample_obj,
-              (mp_obj_t)&mp_const_none_obj,
-              (mp_obj_t)&mp_const_none_obj},
+              MP_ROM_NONE,
+              MP_ROM_NONE},
 };
-
-//|   .. attribute:: channel_count
-//|
-//|     Number of audio channels. (read only)
+//|     channel_count: int
+//|     """Number of audio channels. (read only)"""
 //|
 STATIC mp_obj_t audioio_wavefile_obj_get_channel_count(mp_obj_t self_in) {
     audioio_wavefile_obj_t *self = MP_OBJ_TO_PTR(self_in);
@@ -188,8 +181,8 @@ MP_DEFINE_CONST_FUN_OBJ_1(audioio_wavefile_get_channel_count_obj, audioio_wavefi
 const mp_obj_property_t audioio_wavefile_channel_count_obj = {
     .base.type = &mp_type_property,
     .proxy = {(mp_obj_t)&audioio_wavefile_get_channel_count_obj,
-              (mp_obj_t)&mp_const_none_obj,
-              (mp_obj_t)&mp_const_none_obj},
+              MP_ROM_NONE,
+              MP_ROM_NONE},
 };
 
 
@@ -221,6 +214,6 @@ const mp_obj_type_t audioio_wavefile_type = {
     { &mp_type_type },
     .name = MP_QSTR_WaveFile,
     .make_new = audioio_wavefile_make_new,
-    .locals_dict = (mp_obj_dict_t*)&audioio_wavefile_locals_dict,
+    .locals_dict = (mp_obj_dict_t *)&audioio_wavefile_locals_dict,
     .protocol = &audioio_wavefile_proto,
 };

@@ -35,25 +35,21 @@
 #include "shared-bindings/_bleio/UUID.h"
 #include "shared-module/_bleio/ScanEntry.h"
 
-//| .. currentmodule:: _bleio
-//|
-//| :class:`ScanEntry` -- BLE scan data
-//| =========================================================
-//|
-//| Encapsulates information about a device that was received during scanning. It can be
-//| advertisement or scan response data. This object may only be created by a `_bleio.ScanResults`:
-//| it has no user-visible constructor.
+//| class ScanEntry:
+//|     """Encapsulates information about a device that was received during scanning. It can be
+//|     advertisement or scan response data. This object may only be created by a `_bleio.ScanResults`:
+//|     it has no user-visible constructor."""
 //|
 
-//| .. class:: ScanEntry()
+//|     def __init__(self) -> None:
+//|         """Cannot be instantiated directly. Use `_bleio.Adapter.start_scan`."""
+//|         ...
 //|
-//|   Cannot be instantiated directly. Use `_bleio.Adapter.start_scan`.
-//|
-//|   .. method:: matches(prefixes, *, all=True)
-//|
-//|     Returns True if the ScanEntry matches all prefixes when ``all`` is True. This is stricter
-//|     than the scan filtering which accepts any advertisements that match any of the prefixes
-//|     where all is False.
+//|     def matches(self, prefixes: ScanEntry, *, all: bool = True) -> bool:
+//|         """Returns True if the ScanEntry matches all prefixes when ``all`` is True. This is stricter
+//|         than the scan filtering which accepts any advertisements that match any of the prefixes
+//|         where all is False."""
+//|         ...
 //|
 STATIC mp_obj_t bleio_scanentry_matches(mp_uint_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
     bleio_scanentry_obj_t *self = MP_OBJ_TO_PTR(pos_args[0]);
@@ -67,16 +63,15 @@ STATIC mp_obj_t bleio_scanentry_matches(mp_uint_t n_args, const mp_obj_t *pos_ar
     mp_arg_val_t args[MP_ARRAY_SIZE(allowed_args)];
     mp_arg_parse_all(n_args - 1, pos_args + 1, kw_args, MP_ARRAY_SIZE(allowed_args), allowed_args, args);
 
-    
+
     mp_buffer_info_t bufinfo;
     mp_get_buffer_raise(args[ARG_prefixes].u_obj, &bufinfo, MP_BUFFER_READ);
     return mp_obj_new_bool(common_hal_bleio_scanentry_matches(self, bufinfo.buf, bufinfo.len, args[ARG_all].u_bool));
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_KW(bleio_scanentry_matches_obj, 2, bleio_scanentry_matches);
 
-//|   .. attribute:: address
-//|
-//|   The address of the device (read-only), of type `_bleio.Address`.
+//|     address: Address
+//|     """The address of the device (read-only), of type `_bleio.Address`."""
 //|
 STATIC mp_obj_t bleio_scanentry_get_address(mp_obj_t self_in) {
     bleio_scanentry_obj_t *self = MP_OBJ_TO_PTR(self_in);
@@ -87,13 +82,12 @@ STATIC MP_DEFINE_CONST_FUN_OBJ_1(bleio_scanentry_get_address_obj, bleio_scanentr
 const mp_obj_property_t bleio_scanentry_address_obj = {
     .base.type = &mp_type_property,
     .proxy = { (mp_obj_t)&bleio_scanentry_get_address_obj,
-               (mp_obj_t)&mp_const_none_obj,
-               (mp_obj_t)&mp_const_none_obj },
+               MP_ROM_NONE,
+               MP_ROM_NONE },
 };
 
-//|   .. attribute:: advertisement_bytes
-//|
-//|   All the advertisement data present in the packet, returned as a ``bytes`` object. (read-only)
+//|     advertisement_bytes: bytes
+//|     """All the advertisement data present in the packet, returned as a ``bytes`` object. (read-only)"""
 //|
 STATIC mp_obj_t scanentry_get_advertisement_bytes(mp_obj_t self_in) {
     bleio_scanentry_obj_t *self = MP_OBJ_TO_PTR(self_in);
@@ -104,13 +98,12 @@ STATIC MP_DEFINE_CONST_FUN_OBJ_1(bleio_scanentry_get_advertisement_bytes_obj, sc
 const mp_obj_property_t bleio_scanentry_advertisement_bytes_obj = {
     .base.type = &mp_type_property,
     .proxy = { (mp_obj_t)&bleio_scanentry_get_advertisement_bytes_obj,
-               (mp_obj_t)&mp_const_none_obj,
-               (mp_obj_t)&mp_const_none_obj },
+               MP_ROM_NONE,
+               MP_ROM_NONE },
 };
 
-//|   .. attribute:: rssi
-//|
-//|   The signal strength of the device at the time of the scan, in integer dBm. (read-only)
+//|     rssi: int
+//|     """The signal strength of the device at the time of the scan, in integer dBm. (read-only)"""
 //|
 STATIC mp_obj_t scanentry_get_rssi(mp_obj_t self_in) {
     bleio_scanentry_obj_t *self = MP_OBJ_TO_PTR(self_in);
@@ -121,13 +114,12 @@ STATIC MP_DEFINE_CONST_FUN_OBJ_1(bleio_scanentry_get_rssi_obj, scanentry_get_rss
 const mp_obj_property_t bleio_scanentry_rssi_obj = {
     .base.type = &mp_type_property,
     .proxy = { (mp_obj_t)&bleio_scanentry_get_rssi_obj,
-               (mp_obj_t)&mp_const_none_obj,
-               (mp_obj_t)&mp_const_none_obj },
+               MP_ROM_NONE,
+               MP_ROM_NONE },
 };
 
-//|   .. attribute:: connectable
-//|
-//|   True if the device can be connected to. (read-only)
+//|     connectable: bool
+//|     """True if the device can be connected to. (read-only)"""
 //|
 STATIC mp_obj_t scanentry_get_connectable(mp_obj_t self_in) {
     bleio_scanentry_obj_t *self = MP_OBJ_TO_PTR(self_in);
@@ -138,13 +130,12 @@ STATIC MP_DEFINE_CONST_FUN_OBJ_1(bleio_scanentry_get_connectable_obj, scanentry_
 const mp_obj_property_t bleio_scanentry_connectable_obj = {
     .base.type = &mp_type_property,
     .proxy = { (mp_obj_t)&bleio_scanentry_get_connectable_obj,
-               (mp_obj_t)&mp_const_none_obj,
-               (mp_obj_t)&mp_const_none_obj },
+               MP_ROM_NONE,
+               MP_ROM_NONE },
 };
 
-//|   .. attribute:: scan_response
-//|
-//|   True if the entry was a scan response. (read-only)
+//|     scan_response: bool
+//|     """True if the entry was a scan response. (read-only)"""
 //|
 STATIC mp_obj_t scanentry_get_scan_response(mp_obj_t self_in) {
     bleio_scanentry_obj_t *self = MP_OBJ_TO_PTR(self_in);
@@ -155,8 +146,8 @@ STATIC MP_DEFINE_CONST_FUN_OBJ_1(bleio_scanentry_get_scan_response_obj, scanentr
 const mp_obj_property_t bleio_scanentry_scan_response_obj = {
     .base.type = &mp_type_property,
     .proxy = { (mp_obj_t)&bleio_scanentry_get_scan_response_obj,
-               (mp_obj_t)&mp_const_none_obj,
-               (mp_obj_t)&mp_const_none_obj },
+               MP_ROM_NONE,
+               MP_ROM_NONE },
 };
 
 STATIC const mp_rom_map_elem_t bleio_scanentry_locals_dict_table[] = {
@@ -173,5 +164,5 @@ STATIC MP_DEFINE_CONST_DICT(bleio_scanentry_locals_dict, bleio_scanentry_locals_
 const mp_obj_type_t bleio_scanentry_type = {
     { &mp_type_type },
     .name = MP_QSTR_ScanEntry,
-    .locals_dict = (mp_obj_dict_t*)&bleio_scanentry_locals_dict
+    .locals_dict = (mp_obj_dict_t *)&bleio_scanentry_locals_dict
 };

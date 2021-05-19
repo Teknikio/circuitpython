@@ -34,48 +34,45 @@
 #include "shared-bindings/util.h"
 #include "supervisor/shared/translate.h"
 
-//| .. currentmodule:: audiomp3
+//| class MP3Decoder:
+//|     """Load a mp3 file for audio playback"""
 //|
-//| :class:`MP3Decoder` -- Load a mp3 file for audio playback
-//| =========================================================
+//|     def __init__(self, file: typing.BinaryIO, buffer: WriteableBuffer) -> None:
 //|
-//| An object that decodes MP3 files for playback on an audio device.
+//|         """Load a .mp3 file for playback with `audioio.AudioOut` or `audiobusio.I2SOut`.
 //|
-//| .. class:: MP3(file[, buffer])
-//|
-//|   Load a .mp3 file for playback with `audioio.AudioOut` or `audiobusio.I2SOut`.
-//|
-//|   :param typing.BinaryIO file: Already opened mp3 file
-//|   :param bytearray buffer: Optional pre-allocated buffer, that will be split in half and used for double-buffering of the data. If not provided, two buffers are allocated internally.  The specific buffer size required depends on the mp3 file.
+//|         :param typing.BinaryIO file: Already opened mp3 file
+//|         :param ~_typing.WriteableBuffer buffer: Optional pre-allocated buffer, that will be split in half and used for double-buffering of the data. If not provided, two buffers are allocated internally.  The specific buffer size required depends on the mp3 file.
 //|
 //|
-//|   Playing a mp3 file from flash::
+//|         Playing a mp3 file from flash::
 //|
-//|     import board
-//|     import audiomp3
-//|     import audioio
-//|     import digitalio
+//|           import board
+//|           import audiomp3
+//|           import audioio
+//|           import digitalio
 //|
-//|     # Required for CircuitPlayground Express
-//|     speaker_enable = digitalio.DigitalInOut(board.SPEAKER_ENABLE)
-//|     speaker_enable.switch_to_output(value=True)
+//|           # Required for CircuitPlayground Express
+//|           speaker_enable = digitalio.DigitalInOut(board.SPEAKER_ENABLE)
+//|           speaker_enable.switch_to_output(value=True)
 //|
-//|     data = open("cplay-16bit-16khz-64kbps.mp3", "rb")
-//|     mp3 = audiomp3.MP3Decoder(data)
-//|     a = audioio.AudioOut(board.A0)
+//|           data = open("cplay-16bit-16khz-64kbps.mp3", "rb")
+//|           mp3 = audiomp3.MP3Decoder(data)
+//|           a = audioio.AudioOut(board.A0)
 //|
-//|     print("playing")
-//|     a.play(mp3)
-//|     while a.playing:
-//|       pass
-//|     print("stopped")
+//|           print("playing")
+//|           a.play(mp3)
+//|           while a.playing:
+//|             pass
+//|           print("stopped")"""
+//|         ...
 //|
 STATIC mp_obj_t audiomp3_mp3file_make_new(const mp_obj_type_t *type, size_t n_args, const mp_obj_t *args, mp_map_t *kw_args) {
     mp_arg_check_num(n_args, kw_args, 1, 2, false);
 
     audiomp3_mp3file_obj_t *self = m_new_obj(audiomp3_mp3file_obj_t);
     self->base.type = &audiomp3_mp3file_type;
-    if (!MP_OBJ_IS_TYPE(args[0], &mp_type_fileio)) {
+    if (!mp_obj_is_type(args[0], &mp_type_fileio)) {
         mp_raise_TypeError(translate("file must be a file opened in byte mode"));
     }
     uint8_t *buffer = NULL;
@@ -87,14 +84,14 @@ STATIC mp_obj_t audiomp3_mp3file_make_new(const mp_obj_type_t *type, size_t n_ar
         buffer_size = bufinfo.len;
     }
     common_hal_audiomp3_mp3file_construct(self, MP_OBJ_TO_PTR(args[0]),
-                                          buffer, buffer_size);
+        buffer, buffer_size);
 
     return MP_OBJ_FROM_PTR(self);
 }
 
-//|   .. method:: deinit()
-//|
-//|      Deinitialises the MP3 and releases all memory resources for reuse.
+//|     def deinit(self) -> None:
+//|         """Deinitialises the MP3 and releases all memory resources for reuse."""
+//|         ...
 //|
 STATIC mp_obj_t audiomp3_mp3file_deinit(mp_obj_t self_in) {
     audiomp3_mp3file_obj_t *self = MP_OBJ_TO_PTR(self_in);
@@ -109,16 +106,16 @@ STATIC void check_for_deinit(audiomp3_mp3file_obj_t *self) {
     }
 }
 
-//|   .. method:: __enter__()
-//|
-//|      No-op used by Context Managers.
+//|     def __enter__(self) -> MP3Decoder:
+//|         """No-op used by Context Managers."""
+//|         ...
 //|
 //  Provided by context manager helper.
 
-//|   .. method:: __exit__()
-//|
-//|      Automatically deinitializes the hardware when exiting a context. See
-//|      :ref:`lifetime-and-contextmanagers` for more info.
+//|     def __exit__(self) -> None:
+//|         """Automatically deinitializes the hardware when exiting a context. See
+//|         :ref:`lifetime-and-contextmanagers` for more info."""
+//|         ...
 //|
 STATIC mp_obj_t audiomp3_mp3file_obj___exit__(size_t n_args, const mp_obj_t *args) {
     (void)n_args;
@@ -127,9 +124,8 @@ STATIC mp_obj_t audiomp3_mp3file_obj___exit__(size_t n_args, const mp_obj_t *arg
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(audiomp3_mp3file___exit___obj, 4, 4, audiomp3_mp3file_obj___exit__);
 
-//|   .. attribute:: file
-//|
-//|     File to play back.
+//|     file: typing.BinaryIO
+//|     """File to play back."""
 //|
 STATIC mp_obj_t audiomp3_mp3file_obj_get_file(mp_obj_t self_in) {
     audiomp3_mp3file_obj_t *self = MP_OBJ_TO_PTR(self_in);
@@ -141,7 +137,7 @@ MP_DEFINE_CONST_FUN_OBJ_1(audiomp3_mp3file_get_file_obj, audiomp3_mp3file_obj_ge
 STATIC mp_obj_t audiomp3_mp3file_obj_set_file(mp_obj_t self_in, mp_obj_t file) {
     audiomp3_mp3file_obj_t *self = MP_OBJ_TO_PTR(self_in);
     check_for_deinit(self);
-    if (!MP_OBJ_IS_TYPE(file, &mp_type_fileio)) {
+    if (!mp_obj_is_type(file, &mp_type_fileio)) {
         mp_raise_TypeError(translate("file must be a file opened in byte mode"));
     }
     common_hal_audiomp3_mp3file_set_file(self, file);
@@ -153,16 +149,15 @@ const mp_obj_property_t audiomp3_mp3file_file_obj = {
     .base.type = &mp_type_property,
     .proxy = {(mp_obj_t)&audiomp3_mp3file_get_file_obj,
               (mp_obj_t)&audiomp3_mp3file_set_file_obj,
-              (mp_obj_t)&mp_const_none_obj},
+              MP_ROM_NONE},
 };
 
 
 
-//|   .. attribute:: sample_rate
-//|
-//|     32 bit value that dictates how quickly samples are loaded into the DAC
+//|     sample_rate: int
+//|     """32 bit value that dictates how quickly samples are loaded into the DAC
 //|     in Hertz (cycles per second). When the sample is looped, this can change
-//|     the pitch output without changing the underlying sample.
+//|     the pitch output without changing the underlying sample."""
 //|
 STATIC mp_obj_t audiomp3_mp3file_obj_get_sample_rate(mp_obj_t self_in) {
     audiomp3_mp3file_obj_t *self = MP_OBJ_TO_PTR(self_in);
@@ -183,12 +178,11 @@ const mp_obj_property_t audiomp3_mp3file_sample_rate_obj = {
     .base.type = &mp_type_property,
     .proxy = {(mp_obj_t)&audiomp3_mp3file_get_sample_rate_obj,
               (mp_obj_t)&audiomp3_mp3file_set_sample_rate_obj,
-              (mp_obj_t)&mp_const_none_obj},
+              MP_ROM_NONE},
 };
 
-//|   .. attribute:: bits_per_sample
-//|
-//|     Bits per sample. (read only)
+//|     bits_per_sample: int
+//|     """Bits per sample. (read only)"""
 //|
 STATIC mp_obj_t audiomp3_mp3file_obj_get_bits_per_sample(mp_obj_t self_in) {
     audiomp3_mp3file_obj_t *self = MP_OBJ_TO_PTR(self_in);
@@ -200,13 +194,12 @@ MP_DEFINE_CONST_FUN_OBJ_1(audiomp3_mp3file_get_bits_per_sample_obj, audiomp3_mp3
 const mp_obj_property_t audiomp3_mp3file_bits_per_sample_obj = {
     .base.type = &mp_type_property,
     .proxy = {(mp_obj_t)&audiomp3_mp3file_get_bits_per_sample_obj,
-              (mp_obj_t)&mp_const_none_obj,
-              (mp_obj_t)&mp_const_none_obj},
+              MP_ROM_NONE,
+              MP_ROM_NONE},
 };
 
-//|   .. attribute:: channel_count
-//|
-//|     Number of audio channels. (read only)
+//|     channel_count: int
+//|     """Number of audio channels. (read only)"""
 //|
 STATIC mp_obj_t audiomp3_mp3file_obj_get_channel_count(mp_obj_t self_in) {
     audiomp3_mp3file_obj_t *self = MP_OBJ_TO_PTR(self_in);
@@ -218,13 +211,12 @@ MP_DEFINE_CONST_FUN_OBJ_1(audiomp3_mp3file_get_channel_count_obj, audiomp3_mp3fi
 const mp_obj_property_t audiomp3_mp3file_channel_count_obj = {
     .base.type = &mp_type_property,
     .proxy = {(mp_obj_t)&audiomp3_mp3file_get_channel_count_obj,
-              (mp_obj_t)&mp_const_none_obj,
-              (mp_obj_t)&mp_const_none_obj},
+              MP_ROM_NONE,
+              MP_ROM_NONE},
 };
 
-//|   .. attribute:: rms_level
-//|
-//|     The RMS audio level of a recently played moment of audio. (read only)
+//|     rms_level: float
+//|     """The RMS audio level of a recently played moment of audio. (read only)"""
 //|
 STATIC mp_obj_t audiomp3_mp3file_obj_get_rms_level(mp_obj_t self_in) {
     audiomp3_mp3file_obj_t *self = MP_OBJ_TO_PTR(self_in);
@@ -236,8 +228,8 @@ MP_DEFINE_CONST_FUN_OBJ_1(audiomp3_mp3file_get_rms_level_obj, audiomp3_mp3file_o
 const mp_obj_property_t audiomp3_mp3file_rms_level_obj = {
     .base.type = &mp_type_property,
     .proxy = {(mp_obj_t)&audiomp3_mp3file_get_rms_level_obj,
-              (mp_obj_t)&mp_const_none_obj,
-              (mp_obj_t)&mp_const_none_obj},
+              MP_ROM_NONE,
+              MP_ROM_NONE},
 };
 
 
@@ -270,6 +262,6 @@ const mp_obj_type_t audiomp3_mp3file_type = {
     { &mp_type_type },
     .name = MP_QSTR_MP3Decoder,
     .make_new = audiomp3_mp3file_make_new,
-    .locals_dict = (mp_obj_dict_t*)&audiomp3_mp3file_locals_dict,
+    .locals_dict = (mp_obj_dict_t *)&audiomp3_mp3file_locals_dict,
     .protocol = &audiomp3_mp3file_proto,
 };

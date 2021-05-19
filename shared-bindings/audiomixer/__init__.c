@@ -32,21 +32,7 @@
 #include "shared-bindings/microcontroller/Pin.h"
 #include "shared-bindings/audiomixer/Mixer.h"
 
-//| :mod:`audiomixer` --- Support for audio mixer
-//| ========================================================
-//|
-//| .. module:: audiomixer
-//|   :synopsis: Support for audio mixer
-//|
-//| The `audiomixer` module contains core classes for mixing audio sources
-//|
-//| Libraries
-//|
-//| .. toctree::
-//|     :maxdepth: 3
-//|
-//|     Mixer
-//|     MixerVoice
+//| """Support for audio mixing"""
 //|
 
 STATIC const mp_rom_map_elem_t audiomixer_module_globals_table[] = {
@@ -58,5 +44,5 @@ STATIC MP_DEFINE_CONST_DICT(audiomixer_module_globals, audiomixer_module_globals
 
 const mp_obj_module_t audiomixer_module = {
     .base = { &mp_type_module },
-    .globals = (mp_obj_dict_t*)&audiomixer_module_globals,
+    .globals = (mp_obj_dict_t *)&audiomixer_module_globals,
 };

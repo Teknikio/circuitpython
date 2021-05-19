@@ -9,50 +9,43 @@ MPY_TOOL_LONGINT_IMPL = -mlongint-impl=mpz
 
 INTERNAL_LIBM = 1
 
-USB_SERIAL_NUMBER_LENGTH = 16
+# Number of USB endpoint pairs.
+USB_NUM_ENDPOINT_PAIRS = 8
 
 # All nRF ports have longints.
 LONGINT_IMPL = MPZ
 
+# The ?='s allow overriding in mpconfigboard.mk.
+
 # Audio via PWM
-ifndef CIRCUITPY_AUDIOCORE
-CIRCUITPY_AUDIOCORE = 1
-endif
-
 CIRCUITPY_AUDIOIO = 0
+CIRCUITPY_AUDIOBUSIO ?= 1
+CIRCUITPY_AUDIOCORE ?= 1
+CIRCUITPY_AUDIOMIXER ?= 1
+CIRCUITPY_AUDIOPWMIO ?= 1
 
+# Native BLEIO is not compatible with HCI _bleio.
+CIRCUITPY_BLEIO_HCI = 0
 
-# The ifndef's allow overriding in mpconfigboard.mk.
+CIRCUITPY_BLEIO ?= 1
 
-ifndef
-CIRCUITPY_BLEIO = 1
-endif
+# No I2CPeripheral implementation
+CIRCUITPY_I2CPERIPHERAL = 0
 
-ifndef CIRCUITPY_AUDIOMIXER
-CIRCUITPY_AUDIOMIXER = 1
-endif
-
-ifndef CIRCUITPY_AUDIOPWMIO
-CIRCUITPY_AUDIOPWMIO = 1
-endif
-
-ifndef CIRCUITPY_AUDIOBUSIO
-CIRCUITPY_AUDIOBUSIO = 1
-endif
-
-# No I2CSlave implementation
-CIRCUITPY_I2CSLAVE = 0
-
-# enable RTC
-ifndef CIRCUITPY_RTC
-CIRCUITPY_RTC = 1
-endif
+CIRCUITPY_RTC ?= 1
 
 # frequencyio not yet implemented
 CIRCUITPY_FREQUENCYIO = 0
 
 CIRCUITPY_RGBMATRIX ?= 1
+CIRCUITPY_ROTARYIO_SOFTENCODER = 1
 CIRCUITPY_FRAMEBUFFERIO ?= 1
+
+CIRCUITPY_COUNTIO ?= 1
+CIRCUITPY_WATCHDOG ?= 1
+
+# Sleep and Wakeup
+CIRCUITPY_ALARM ?= 1
 
 # nRF52840-specific
 
@@ -60,6 +53,9 @@ ifeq ($(MCU_CHIP),nrf52840)
 MCU_SERIES = m4
 MCU_VARIANT = nrf52
 MCU_SUB_VARIANT = nrf52840
+
+# Fits on nrf52840 but space is tight on nrf52833.
+CIRCUITPY_AESIO ?= 1
 
 SD ?= s140
 SOFTDEV_VERSION ?= 6.1.0
@@ -71,8 +67,6 @@ NRF_DEFINES += -DNRF52840_XXAA -DNRF52840
 # See https://github.com/adafruit/circuitpython/issues/1300
 # Defined here because system_nrf52840.c doesn't #include any of our own include files.
 CFLAGS += -DCONFIG_NFCT_PINS_AS_GPIOS
-
-CIRCUITPY_ULAB = 1
 
 else
 ifeq ($(MCU_CHIP),nrf52833)

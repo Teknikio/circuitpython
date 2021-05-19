@@ -24,9 +24,9 @@
  * THE SOFTWARE.
  */
 
-//Micropython setup
+// Micropython setup
 
-#define MICROPY_HW_BOARD_NAME       "Feather STM32F405 Express"
+#define MICROPY_HW_BOARD_NAME       "Adafruit Feather STM32F405 Express"
 #define MICROPY_HW_MCU_NAME         "STM32F405RG"
 
 #define FLASH_SIZE                  (0x100000)
@@ -34,7 +34,9 @@
 
 #define MICROPY_HW_NEOPIXEL (&pin_PC00)
 
-#define BOARD_OSC_DIV (12)
+#define HSE_VALUE ((uint32_t)12000000U)
+#define LSE_VALUE ((uint32_t)32768)
+#define BOARD_HAS_LOW_SPEED_CRYSTAL (1)
 
 // On-board flash
 #define SPI_FLASH_MOSI_PIN          (&pin_PB05)
@@ -44,7 +46,7 @@
 
 // Bootloader only
 #ifdef UF2_BOOTLOADER_ENABLED
-    #define BOARD_VTOR_DEFER (1) //Leave VTOR relocation to bootloader
+    #define BOARD_VTOR_DEFER (1) // Leave VTOR relocation to bootloader
 #endif
 
 #define DEFAULT_I2C_BUS_SCL (&pin_PB06)

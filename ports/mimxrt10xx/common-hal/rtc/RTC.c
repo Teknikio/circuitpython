@@ -48,19 +48,19 @@ void common_hal_rtc_get_time(timeutils_struct_time_t *tm) {
     SNVS_HP_RTC_GetDatetime(SNVS, &rtcDate);
 
     tm->tm_year = rtcDate.year;
-    tm->tm_mon  = rtcDate.month;
+    tm->tm_mon = rtcDate.month;
     tm->tm_mday = rtcDate.day;
     tm->tm_hour = rtcDate.hour;
-    tm->tm_min  = rtcDate.minute;
-    tm->tm_sec  = rtcDate.second;
+    tm->tm_min = rtcDate.minute;
+    tm->tm_sec = rtcDate.second;
 }
 
 void common_hal_rtc_set_time(timeutils_struct_time_t *tm) {
     snvs_hp_rtc_datetime_t rtcDate;
-    rtcDate.year   = tm->tm_year;
-    rtcDate.month  = tm->tm_mon;
-    rtcDate.day    = tm->tm_mday;
-    rtcDate.hour   = tm->tm_hour;
+    rtcDate.year = tm->tm_year;
+    rtcDate.month = tm->tm_mon;
+    rtcDate.day = tm->tm_mday;
+    rtcDate.hour = tm->tm_hour;
     rtcDate.minute = tm->tm_min;
     rtcDate.second = tm->tm_sec;
 
@@ -72,5 +72,6 @@ int common_hal_rtc_get_calibration(void) {
 }
 
 void common_hal_rtc_set_calibration(int calibration) {
+    // SNVS has HPCALB_VAL bits for calibration.
     mp_raise_NotImplementedError(translate("RTC calibration is not supported on this board"));
 }

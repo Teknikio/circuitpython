@@ -34,19 +34,18 @@
 typedef struct {
     mp_obj_base_t base;
 
-    const mcu_pin_obj_t* pin;
-    IRQn_Type irq;
+    const mcu_pin_obj_t *pin;
     bool idle_state;
     bool paused;
     volatile bool first_edge;
 
-    uint16_t* buffer;
+    uint16_t *buffer;
     uint16_t maxlen;
 
     volatile uint16_t start;
     volatile uint16_t len;
-    volatile uint16_t last_us;
-    volatile uint64_t last_ms;
+    volatile uint32_t last_overflow;
+    volatile uint16_t last_count;
 } pulseio_pulsein_obj_t;
 
 void pulsein_reset(void);

@@ -35,7 +35,6 @@ typedef struct {
     NRF_PWM_Type *pwm;
     uint16_t *buffers[2];
 
-    uint16_t buffer_length;
     uint16_t quiescent_value;
     uint16_t scale;
 
@@ -43,6 +42,8 @@ typedef struct {
     uint8_t right_channel_number;
     uint8_t sample_channel_count;
     uint8_t bytes_per_sample;
+
+    IRQn_Type pwm_irq;
 
     bool playing;
     bool stopping;

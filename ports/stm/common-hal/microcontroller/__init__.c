@@ -40,32 +40,14 @@
 #include "supervisor/filesystem.h"
 #include "supervisor/shared/safe_mode.h"
 
-//tested divisor value for busy loop in us delay
-#define LOOP_TICKS 12
-
-STATIC uint32_t get_us(void) {
-    uint32_t ticks_per_us = HAL_RCC_GetSysClockFreq()/1000000;
-    uint32_t micros, sys_cycles;
-    do {
-        micros = supervisor_ticks_ms32();
-        sys_cycles = SysTick->VAL; //counts backwards
-    } while (micros != supervisor_ticks_ms32()); //try again if ticks_ms rolled over
-    return (micros * 1000) + (ticks_per_us * 1000 - sys_cycles) / ticks_per_us;
-}
-
 void common_hal_mcu_delay_us(uint32_t delay) {
-    if (__get_PRIMASK() == 0x00000000) {
-        //by default use ticks_ms
-        uint32_t start = get_us();
-        while (get_us()-start < delay) {
-            __asm__ __volatile__("nop");
-        }
-    } else {
-        //when SysTick is disabled, approximate with busy loop
-        const uint32_t ucount = HAL_RCC_GetSysClockFreq() / 1000000 * delay / LOOP_TICKS;
-        for (uint32_t count = 0; ++count <= ucount;) {
-        }
+    uint32_t ticks_per_us = HAL_RCC_GetSysClockFreq() / 1000000;
+    delay *= ticks_per_us;
+    SysTick->LOAD = delay;
+    SysTick->CTRL = SysTick_CTRL_CLKSOURCE_Msk | SysTick_CTRL_ENABLE_Msk;
+    while ((SysTick->CTRL & SysTick_CTRL_COUNTFLAG_Msk) == 0) {
     }
+    SysTick->CTRL = 0;
 }
 
 volatile uint32_t nesting_count = 0;
@@ -80,7 +62,7 @@ void common_hal_mcu_enable_interrupts(void) {
     if (nesting_count == 0) {
         // This is very very bad because it means there was mismatched disable/enables so we
         // "HardFault".
-        asm("bkpt");
+        asm ("bkpt");
     }
     nesting_count--;
     if (nesting_count > 0) {
@@ -91,12 +73,13 @@ void common_hal_mcu_enable_interrupts(void) {
 }
 
 void common_hal_mcu_on_next_reset(mcu_runmode_t runmode) {
-  if(runmode == RUNMODE_SAFE_MODE)
-    safe_mode_on_next_reset(PROGRAMMATIC_SAFE_MODE);
+    if (runmode == RUNMODE_SAFE_MODE) {
+        safe_mode_on_next_reset(PROGRAMMATIC_SAFE_MODE);
+    }
 }
 
 void common_hal_mcu_reset(void) {
-    filesystem_flush(); //TODO: implement as part of flash improvements
+    filesystem_flush(); // TODO: implement as part of flash improvements
     NVIC_SystemReset();
 }
 
@@ -115,7 +98,6 @@ const nvm_bytearray_obj_t common_hal_mcu_nvm_obj = {
         .type = &nvm_bytearray_type,
     },
     .len = NVM_BYTEARRAY_BUFFER_SIZE,
-    .start_address = (uint8_t*) (CIRCUITPY_INTERNAL_NVM_START_ADDR)
+    .start_address = (uint8_t *)(CIRCUITPY_INTERNAL_NVM_START_ADDR)
 };
 #endif
-

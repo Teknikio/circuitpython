@@ -33,24 +33,9 @@
 #include "shared-bindings/audiocore/__init__.h"
 #include "shared-bindings/audiocore/RawSample.h"
 #include "shared-bindings/audiocore/WaveFile.h"
-//#include "shared-bindings/audiomixer/Mixer.h"
+// #include "shared-bindings/audiomixer/Mixer.h"
 
-//| :mod:`audiocore` --- Support for audio samples and mixer
-//| ========================================================
-//|
-//| .. module:: audiocore
-//|   :synopsis: Support for audio samples and mixer
-//|   :platform: SAMD21
-//|
-//| The `audiocore` module contains core classes for audio IO
-//|
-//| Libraries
-//|
-//| .. toctree::
-//|     :maxdepth: 3
-//|
-//|     RawSample
-//|     WaveFile
+//| """Support for audio samples"""
 //|
 
 STATIC const mp_rom_map_elem_t audiocore_module_globals_table[] = {
@@ -63,5 +48,5 @@ STATIC MP_DEFINE_CONST_DICT(audiocore_module_globals, audiocore_module_globals_t
 
 const mp_obj_module_t audiocore_module = {
     .base = { &mp_type_module },
-    .globals = (mp_obj_dict_t*)&audiocore_module_globals,
+    .globals = (mp_obj_dict_t *)&audiocore_module_globals,
 };

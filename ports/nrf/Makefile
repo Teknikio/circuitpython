@@ -2,7 +2,7 @@
 #
 # The MIT License (MIT)
 #
-# Copyright (c) 2019 Dan Halbert for Adafruit Industries
+# SPDX-FileCopyrightText: Copyright (c) 2019 Dan Halbert for Adafruit Industries
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -73,11 +73,11 @@ INC += -I$(BUILD)
 INC += -I$(BUILD)/genhdr
 INC += -I./../../lib/cmsis/inc
 INC += -I./boards/$(BOARD)
-INC += -I./nrfx
-INC += -I./nrfx/hal
-INC += -I./nrfx/mdk
-INC += -I./nrfx/drivers/include
-INC += -I./nrfx/drivers/src
+INC += -isystem ./nrfx
+INC += -isystem ./nrfx/hal
+INC += -isystem ./nrfx/mdk
+INC += -isystem ./nrfx/drivers/include
+INC += -isystem ./nrfx/drivers/src
 INC += -I./bluetooth
 INC += -I./peripherals
 INC += -I../../lib/mp-readline
@@ -86,18 +86,25 @@ INC += -I../../supervisor/shared/usb
 
 #Debugging/Optimization
 ifeq ($(DEBUG), 1)
-  CFLAGS += -ggdb3 -Og
+  CFLAGS += -ggdb3
+  OPTIMIZATION_FLAGS = -Og
 else
-  CFLAGS += -Os -DNDEBUG
+  OPTIMIZATION_FLAGS ?= -O2 -fno-inline-functions
+  CFLAGS += -DNDEBUG -ggdb3
   CFLAGS += -flto -flto-partition=none
 endif
 
+ifeq ($(NRF_DEBUG_PRINT), 1)
+  CFLAGS += -DNRF_DEBUG_PRINT=1
+  SRC_SUPERVISOR += supervisor/debug_uart.c
+endif
 
-CFLAGS += $(INC) -Wall -Werror -std=gnu11 -nostdlib $(BASE_CFLAGS) $(CFLAGS_MOD) $(COPT)
+# option to override compiler optimization level, set in boards/$(BOARD)/mpconfigboard.mk
+CFLAGS += $(OPTIMIZATION_FLAGS)
+
+CFLAGS += $(INC) -Wall -Werror -std=gnu11 -nostdlib -fshort-enums $(BASE_CFLAGS) $(CFLAGS_MOD) $(COPT)
 
 # Undo some warnings.
-# nrfx uses undefined preprocessor variables quite casually, so we can't do warning checks for these.
-CFLAGS += -Wno-undef
 # nrfx does casts that increase alignment requirements.
 CFLAGS += -Wno-cast-align
 
@@ -114,7 +121,7 @@ CFLAGS += \
 # TODO: check this
 CFLAGS += -D__START=main
 
-LDFLAGS = $(CFLAGS) -nostartfiles -fshort-enums -Wl,-nostdlib -Wl,-T,$(GENERATED_LD_FILE) -Wl,-Map=$@.map -Wl,-cref -Wl,-gc-sections -specs=nano.specs
+LDFLAGS = $(CFLAGS) -nostartfiles -Wl,-nostdlib -Wl,-T,$(GENERATED_LD_FILE) -Wl,-Map=$@.map -Wl,-cref -Wl,-gc-sections -specs=nano.specs
 LIBS := -lgcc -lc
 
 LDFLAGS += -mthumb -mcpu=cortex-m4
@@ -136,6 +143,7 @@ SRC_NRFX = $(addprefix nrfx/,\
 	drivers/src/nrfx_gpiote.c \
 	drivers/src/nrfx_rtc.c \
 	drivers/src/nrfx_nvmc.c \
+	drivers/src/nrfx_wdt.c \
 	)
 
 ifdef EXTERNAL_FLASH_DEVICES
@@ -148,24 +156,11 @@ endif
 SRC_C += \
 	background.c \
 	fatfs_port.c \
-	mphalport.c \
-	tick.c \
 	boards/$(BOARD)/board.c \
 	boards/$(BOARD)/pins.c \
 	device/$(MCU_VARIANT)/startup_$(MCU_SUB_VARIANT).c \
 	bluetooth/ble_drv.c \
 	common-hal/_bleio/bonding.c \
-	lib/libc/string0.c \
-	lib/mp-readline/readline.c \
-	lib/oofatfs/ff.c \
-	lib/oofatfs/option/ccsbcs.c \
-	lib/timeutils/timeutils.c \
-	lib/utils/buffer_helper.c \
-	lib/utils/context_manager_helpers.c \
-	lib/utils/interrupt_char.c \
-	lib/utils/pyexec.c \
-	lib/utils/stdout_helpers.c \
-	lib/utils/sys_stdio_mphal.c \
 	nrfx/mdk/system_$(MCU_SUB_VARIANT).c \
 	peripherals/nrf/cache.c \
 	peripherals/nrf/clocks.c \
@@ -173,9 +168,9 @@ SRC_C += \
 	peripherals/nrf/$(MCU_CHIP)/power.c \
         peripherals/nrf/nvm.c \
 	peripherals/nrf/timers.c \
-	sd_mutex.c \
-	supervisor/shared/memory.c
+	sd_mutex.c
 
+ifneq ($(CIRCUITPY_USB),0)
 # USB source files for nrf52840
 ifeq ($(MCU_SUB_VARIANT),nrf52840)
 SRC_C += \
@@ -186,6 +181,7 @@ ifeq ($(MCU_SUB_VARIANT),nrf52833)
 SRC_C += \
 	lib/tinyusb/src/portable/nordic/nrf5x/dcd_nrf5x.c
 endif
+endif # CIRCUITPY_USB
 
 ifeq ($(CIRCUITPY_NETWORK),1)
 CFLAGS += -DMICROPY_PY_NETWORK=1
@@ -234,8 +230,14 @@ OBJ += $(addprefix $(BUILD)/, $(SRC_COMMON_HAL_SHARED_MODULE_EXPANDED:.c=.o))
 ifeq ($(INTERNAL_LIBM),1)
 OBJ += $(addprefix $(BUILD)/, $(SRC_LIBM:.c=.o))
 endif
+OBJ += $(addprefix $(BUILD)/, $(SRC_CIRCUITPY_COMMON:.c=.o))
 OBJ += $(addprefix $(BUILD)/, $(SRC_S:.s=.o))
 OBJ += $(addprefix $(BUILD)/, $(SRC_MOD:.c=.o))
+
+# nrfx uses undefined preprocessor variables quite casually, so we can't do
+# warning checks for these.  Happily, we've confined the offenders to the NRFX
+# source files themselves.
+$(addprefix $(BUILD)/, $(SRC_NRFX:.c=.o)): CFLAGS += -Wno-undef
 
 $(BUILD)/$(FATFS_DIR)/ff.o: COPT += -Os
 $(filter $(PY_BUILD)/../extmod/vfs_fat_%.o, $(PY_O)): COPT += -Os
