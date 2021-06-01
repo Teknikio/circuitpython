@@ -45,4 +45,4 @@
 #define DEFAULT_UART_BUS_RX         (&pin_P1_07)
 #define DEFAULT_UART_BUS_TX         (&pin_P1_08)
 
-#define BOARD_HAS_CRYSTAL 1  // according to the schematic we do
+#define BOARD_HAS_CRYSTAL 0  // according to the schematic we do
